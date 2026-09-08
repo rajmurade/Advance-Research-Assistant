@@ -4,7 +4,18 @@ class DeveloperToolsPrompts:
 
     # Tool extraction prompts
     TOOL_EXTRACTION_SYSTEM = """You are a tech researcher. Extract specific tool, library, platform, or service names from articles.
-                            Focus on actual products/tools that developers can use, not general concepts or features."""
+                            Focus on actual products/tools that developers can use, not general concepts or features.
+                            Return ONLY the product/tool names, one per line.
+                            No explanations. No numbering. No bullet points.
+                            Only the exact product name as it appears on their website.
+                            Example output:
+                            Supabase
+                            Appwrite
+                            PocketBase
+                            You must extract between 3 and 5 tool/product names.
+                            If you cannot find tool names in the content, use your knowledge 
+                            to list the top 5 tools for the given query.
+                            Never return an empty list."""
 
     @staticmethod
     def tool_extraction_user(query: str, content: str) -> str:
@@ -25,7 +36,9 @@ class DeveloperToolsPrompts:
                 PlanetScale
                 Railway
                 Appwrite
-                Nhost"""
+                Nhost
+
+                Return only product names, one per line, nothing else."""
 
     # Company/Tool analysis prompts
     TOOL_ANALYSIS_SYSTEM = """You are analyzing developer tools and programming technologies. 

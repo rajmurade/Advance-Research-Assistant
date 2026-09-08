@@ -1,16 +1,50 @@
+import json
+import re
 from typing import Dict, Any
+# pyrefly: ignore [missing-import]
 from langgraph.graph import StateGraph, END
-from langchain_openai import ChatOpenAI
+# pyrefly: ignore [missing-import]
+from langchain_groq import ChatGroq
+# pyrefly: ignore [missing-import]
 from langchain_core.messages import HumanMessage, SystemMessage
 from .models import ResearchState, CompanyInfo, CompanyAnalysis
-from .firecrawl import FirecrawlService
+from .firecrawl import TavilyService
 from .prompts import DeveloperToolsPrompts
 
 
 class Workflow:
+    def _clean_response(self, text: str) -> str:
+        import re
+        # Remove think blocks completely
+        text = re.sub(r' thinking[\s\S]*? response', '', text)
+        # Remove markdown code fences
+        text = re.sub(r'```(?:json)?', '', text)
+        text = text.replace('```', '')
+        return text.strip()
+
+    def _extract_names_from_titles(self, titles):
+        prompt = (
+            f"Extract only the product/tool names mentioned in these titles. "
+            f"Return one name per line, no explanations.\n\n"
+            f"Titles:\n" + "\n".join(titles)
+        )
+        try:
+            response = self.llm.invoke([HumanMessage(content=prompt)])
+            cleaned = self._clean_response(response.content)
+            names = [
+                line.strip()
+                for line in cleaned.split("\n")
+                if line.strip()
+                and not line.startswith(('-', '*', '#', '<'))
+            ][:4]
+            return names
+        except Exception as e:
+            print(e)
+            return titles[:4]
+
     def __init__(self):
-        self.firecrawl = FirecrawlService()
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+        self.tavily = TavilyService()
+        self.llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0.1, max_tokens=800)
         self.prompts = DeveloperToolsPrompts()
         self.workflow = self._build_workflow()
 
@@ -29,12 +63,12 @@ class Workflow:
         print(f"🔍 Finding articles about: {state.query}")
 
         article_query = f"{state.query} tools comparison best alternatives"
-        search_results = self.firecrawl.search_companies(article_query, num_results=3)
+        search_results = self.tavily.search_companies(article_query, num_results=3)
 
         all_content = ""
         for result in search_results.data:
             url = result.get("url", "")
-            scraped = self.firecrawl.scrape_company_pages(url)
+            scraped = self.tavily.scrape_company_pages(url)
             if scraped:
                 all_content + scraped.markdown[:1500] + "\n\n"
 
@@ -45,28 +79,49 @@ class Workflow:
 
         try:
             response = self.llm.invoke(messages)
-            tool_names = [
-                name.strip()
-                for name in response.content.strip().split("\n")
-                if name.strip()
-            ]
-            print(f"Extracted tools: {', '.join(tool_names[:5])}")
+            cleaned = self._clean_response(response.content)
+            tool_names = []
+            for line in cleaned.split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith(('-', '*', '#', '<', '1', '2', '3', '4', '5', '6', '7', '8', '9')):
+                    continue
+                if len(line) > 40:
+                    continue
+                skip_words = ['focus', 'limit', 'only', 'actual', 'provide', 'list', 'include', 'example', 'note']
+                if any(word in line.lower() for word in skip_words):
+                    continue
+                tool_names.append(line)
+
+            tool_names = tool_names[:5]
+
+            if not tool_names:
+                fallback_messages = [
+                    SystemMessage(content="You are a developer tools expert."),
+                    HumanMessage(content=f"List the top 5 most popular tools for: {state.query}. Return only tool names, one per line.")
+                ]
+                response = self.llm.invoke(fallback_messages)
+                tool_names = [line.strip() for line in self._clean_response(response.content).split("\n") if line.strip() and len(line.strip()) < 30]
+
+            print(f"Extracted tools: {', '.join(tool_names)}")
             return {"extracted_tools": tool_names}
         except Exception as e:
             print(e)
             return {"extracted_tools": []}
 
     def _analyze_company_content(self, company_name: str, content: str) -> CompanyAnalysis:
-        structured_llm = self.llm.with_structured_output(CompanyAnalysis)
-
         messages = [
             SystemMessage(content=self.prompts.TOOL_ANALYSIS_SYSTEM),
             HumanMessage(content=self.prompts.tool_analysis_user(company_name, content))
         ]
 
         try:
-            analysis = structured_llm.invoke(messages)
-            return analysis
+            response = self.llm.invoke(messages)
+            print("RAW RESPONSE:", response.content[:500])
+            content = self._clean_response(response.content)
+            result = json.loads(content)
+            return CompanyAnalysis(**result)
         except Exception as e:
             print(e)
             return CompanyAnalysis(
@@ -85,11 +140,12 @@ class Workflow:
 
         if not extracted_tools:
             print("⚠️ No extracted tools found, falling back to direct search")
-            search_results = self.firecrawl.search_companies(state.query, num_results=4)
-            tool_names = [
+            search_results = self.tavily.search_companies(state.query, num_results=4)
+            raw_titles = [
                 result.get("metadata", {}).get("title", "Unknown")
                 for result in search_results.data
             ]
+            tool_names = self._extract_names_from_titles(raw_titles)
         else:
             tool_names = extracted_tools[:4]
 
@@ -97,21 +153,18 @@ class Workflow:
 
         companies = []
         for tool_name in tool_names:
-            tool_search_results = self.firecrawl.search_companies(tool_name + " official site", num_results=1)
+            url = self._get_official_url(tool_name)
 
-            if tool_search_results:
-                result = tool_search_results.data[0]
-                url = result.get("url", "")
-
+            if url:
                 company = CompanyInfo(
                     name=tool_name,
-                    description=result.get("markdown", ""),
+                    description="",
                     website=url,
                     tech_stack=[],
                     competitors=[]
                 )
 
-                scraped = self.firecrawl.scrape_company_pages(url)
+                scraped = self.tavily.scrape_company_pages(url)
                 if scraped:
                     content = scraped.markdown
                     analysis = self._analyze_company_content(company.name, content)
@@ -128,6 +181,15 @@ class Workflow:
 
         return {"companies": companies}
 
+    def _get_official_url(self, tool_name: str) -> str:
+        messages = [
+            SystemMessage(content="You are a developer tools expert. Return only a URL, nothing else."),
+            HumanMessage(content=f"What is the official homepage URL of {tool_name}? Return only the URL.")
+        ]
+        response = self.llm.invoke(messages)
+        url = self._clean_response(response.content).strip()
+        return url
+
     def _analyze_step(self, state: ResearchState) -> Dict[str, Any]:
         print("Generating recommendations")
 
@@ -141,7 +203,8 @@ class Workflow:
         ]
 
         response = self.llm.invoke(messages)
-        return {"analysis": response.content}
+        content = self._clean_response(response.content)
+        return {"analysis": content}
 
     def run(self, query: str) -> ResearchState:
         initial_state = ResearchState(query=query)
