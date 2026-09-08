@@ -134,6 +134,37 @@ class Workflow:
                 integration_capabilities=[],
             )
 
+    def _analyze_from_knowledge(self, tool_name: str) -> CompanyAnalysis:
+        fallback_messages = [
+            SystemMessage(content="You are a developer tools expert. Return only JSON, no explanation."),
+            HumanMessage(content=f"""Return a JSON object for {tool_name} with these exact fields:
+            {{
+                "pricing_model": "Free/Freemium/Paid/Enterprise",
+                "is_open_source": true/false,
+                "tech_stack": ["item1", "item2"],
+                "description": "one sentence description",
+                "api_available": true/false,
+                "language_support": ["lang1", "lang2"],
+                "integration_capabilities": ["tool1", "tool2"]
+            }}""")
+        ]
+
+        try:
+            response = self.llm.invoke(fallback_messages)
+            content = self._clean_response(response.content)
+            result = json.loads(content)
+            return CompanyAnalysis(**result)
+        except Exception as e:
+            print(e)
+            return CompanyAnalysis(
+                pricing_model="Unknown",
+                is_open_source=None,
+                tech_stack=[],
+                description="Failed",
+                api_available=None,
+                language_support=[],
+                integration_capabilities=[],
+            )
 
     def _research_step(self, state: ResearchState) -> Dict[str, Any]:
         extracted_tools = getattr(state, "extracted_tools", [])
@@ -165,17 +196,18 @@ class Workflow:
                 )
 
                 scraped = self.tavily.scrape_company_pages(url)
-                if scraped:
-                    content = scraped.markdown
-                    analysis = self._analyze_company_content(company.name, content)
+                if scraped and scraped.markdown and scraped.markdown.strip():
+                    analysis = self._analyze_company_content(company.name, scraped.markdown)
+                else:
+                    analysis = self._analyze_from_knowledge(tool_name)
 
-                    company.pricing_model = analysis.pricing_model
-                    company.is_open_source = analysis.is_open_source
-                    company.tech_stack = analysis.tech_stack
-                    company.description = analysis.description
-                    company.api_available = analysis.api_available
-                    company.language_support = analysis.language_support
-                    company.integration_capabilities = analysis.integration_capabilities
+                company.pricing_model = analysis.pricing_model
+                company.is_open_source = analysis.is_open_source
+                company.tech_stack = analysis.tech_stack
+                company.description = analysis.description
+                company.api_available = analysis.api_available
+                company.language_support = analysis.language_support
+                company.integration_capabilities = analysis.integration_capabilities
 
                 companies.append(company)
 
