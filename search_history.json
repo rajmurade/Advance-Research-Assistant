@@ -1,5 +1,341 @@
 [
   {
+    "query": "which is the best hosting",
+    "timestamp": "2026-09-08T16:53:08",
+    "companies": [
+      {
+        "name": "Netlify",
+        "description": "Failed",
+        "website": "https://www.netlify.com/",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Vercel",
+        "description": "Failed",
+        "website": "https://vercel.com",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Fly.io",
+        "description": "Failed",
+        "website": "https://fly.io",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Render",
+        "description": "Render is a cloud platform that provides intuitive infrastructure to deploy and scale apps, APIs, and databases from the first user to billions.",
+        "website": "https://render.com",
+        "pricing_model": "Freemium",
+        "is_open_source": false,
+        "tech_stack": [
+          "Docker",
+          "Git",
+          "Static sites",
+          "Web services",
+          "Private services",
+          "Workflows",
+          "Background workers",
+          "Cron jobs",
+          "Databases"
+        ],
+        "competitors": [],
+        "api_available": false,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      }
+    ],
+    "recommendation": "**Best choice:** Render \u2013 it offers a solid freemium tier and full Docker support, making it easy to deploy static sites, APIs, and background workers.  \n**Cost:** Free tier covers most small projects; paid plans start at $7/month per service, with pay\u2011as\u2011you\u2011go for compute and storage.  \n**Technical advantage:** Native Docker, Git integration, and built\u2011in cron jobs/background workers give you the most flexibility for scaling and complex workloads."
+  },
+  {
+    "query": "firebase alternative?",
+    "timestamp": "2026-09-08T16:52:04",
+    "companies": [
+      {
+        "name": "Supabase",
+        "description": "Failed",
+        "website": "https://supabase.com",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Appwrite",
+        "description": "Failed",
+        "website": "https://appwrite.io",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Hasura",
+        "description": "Failed",
+        "website": "https://hasura.io",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Parse Server",
+        "description": "Parse Server is an open\u2011source backend platform that delivers a full suite of APIs, SDKs, and tools for building mobile and web apps with real\u2011time data, authentication, and server\u2011side logic.",
+        "website": "https://parseplatform.org/",
+        "pricing_model": "Free",
+        "is_open_source": true,
+        "tech_stack": [
+          "Node.js",
+          "MongoDB",
+          "PostgreSQL",
+          "GridFS",
+          "Amazon S3",
+          "Google Cloud Storage",
+          "REST API",
+          "GraphQL API",
+          "Live Queries",
+          "Push notifications",
+          "Cloud Functions",
+          "Parse Dashboard"
+        ],
+        "competitors": [],
+        "api_available": true,
+        "language_support": [
+          "JavaScript (Node.js)",
+          "Swift",
+          "Objective\u2011C",
+          "Java",
+          "Kotlin",
+          "C# (Unity)",
+          "React Native (JavaScript)",
+          "Python (via REST/GraphQL)",
+          "Go (via REST/GraphQL)"
+        ],
+        "integration_capabilities": [
+          "Amazon S3",
+          "Google Cloud Storage",
+          "Docker",
+          "Kubernetes",
+          "GitHub (source code)",
+          "Parse Dashboard",
+          "Any Node.js hosting environment (e.g., AWS, GCP, Azure, DigitalOcean, Heroku)"
+        ],
+        "developer_experience_rating": null
+      }
+    ],
+    "recommendation": "**Best choice:** Parse Server \u2013 it\u2019s fully open\u2011source, free to use, and ships with a complete set of SDKs, real\u2011time data, authentication, push notifications, and GraphQL/REST APIs.  \n**Cost:** No license fee, but you\u2019ll pay for your own hosting (e.g., AWS, GCP, Azure, or DigitalOcean) and any storage services you attach (S3, GCS).  \n**Technical edge:** Native support for live queries and cloud functions gives you real\u2011time, server\u2011side logic without a proprietary backend."
+  },
+  {
+    "query": "firebase alternative?",
+    "timestamp": "2026-09-08T16:48:21",
+    "companies": [
+      {
+        "name": "Supabase",
+        "description": "Failed",
+        "website": "https://supabase.com",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Appwrite",
+        "description": "Failed",
+        "website": "https://appwrite.io",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Hasura",
+        "description": "Failed",
+        "website": "https://hasura.io",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Parse Server",
+        "description": "Failed",
+        "website": "https://parseplatform.org/",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      }
+    ],
+    "recommendation": "**Supabase** is the strongest Firebase alternative \u2013 it\u2019s fully open\u2011source, built on PostgreSQL, and offers Auth, Realtime, Storage, and Edge Functions out of the box.  \nThe free tier gives you 500\u202fMB storage and 50\u202fk requests; paid plans start at $25\u202f/\u202fmonth, scaling linearly with usage.  \nIts main technical edge is the native Postgres database with instant GraphQL/REST APIs and real\u2011time subscriptions, making migration from Firebase straightforward while keeping your data in a relational model."
+  },
+  {
+    "query": "which is the best hosting",
+    "timestamp": "2026-09-08T16:39:48",
+    "companies": [
+      {
+        "name": "Netlify",
+        "description": "Failed",
+        "website": "https://www.netlify.com/",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Vercel",
+        "description": "Failed",
+        "website": "https://vercel.com",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Fly.io",
+        "description": "Failed",
+        "website": "https://fly.io",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Render",
+        "description": "Failed",
+        "website": "https://render.com",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      }
+    ],
+    "recommendation": "**Best choice:** Vercel \u2013 it\u2019s optimized for modern front\u2011end frameworks (Next.js, React, Vue) and offers instant global CDN, automatic preview deployments, and a generous free tier.  \n**Cost:** Free tier covers most small projects; paid plans start at $20/month per team, with pay\u2011as\u2011you\u2011go bandwidth and build minutes.  \n**Technical advantage:** Built\u2011in edge functions and serverless API routes give low\u2011latency, globally distributed execution without managing infrastructure."
+  },
+  {
+    "query": "best coding agent in 2026?",
+    "timestamp": "2026-09-08T16:38:44",
+    "companies": [
+      {
+        "name": "GitHub Copilot",
+        "description": "Failed",
+        "website": "https://github.com/features/copilot",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Tabnine",
+        "description": "AI coding assistant that delivers contextual code completion and an enterprise\u2011level context engine for developers.",
+        "website": "https://www.tabnine.com",
+        "pricing_model": "Unknown",
+        "is_open_source": false,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": false,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Claude",
+        "description": "Failed",
+        "website": "https://claude.ai",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Gemini",
+        "description": "Google\u2019s generative AI assistant that can answer questions and help with a variety of tasks.",
+        "website": "https://gemini.google.com",
+        "pricing_model": "Unknown",
+        "is_open_source": false,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": false,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      }
+    ],
+    "recommendation": "**Best choice:** Tabnine \u2013 it\u2019s the only viable, actively maintained agent in the list.  \n**Cost:** Subscription\u2011based (tiered for individuals and enterprises; exact rates vary by plan).  \n**Technical edge:** Enterprise\u2011level context engine that delivers highly accurate, context\u2011aware completions across multiple languages."
+  },
+  {
     "query": "best MLOps tools 2026",
     "timestamp": "2026-09-08T16:00:38",
     "companies": [
