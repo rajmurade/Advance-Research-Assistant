@@ -1,8 +1,13 @@
+import json
+import os
+from datetime import datetime
 # pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 load_dotenv()
 # pyrefly: ignore [missing-import]
 import streamlit as st
+# pyrefly: ignore [missing-import]
+from src.models import CompanyInfo
 
 # Configure page settings
 st.set_page_config(
@@ -202,6 +207,28 @@ CUSTOM_CSS = """
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
+# Search history helpers
+HISTORY_FILE = os.path.join(os.path.dirname(__file__), "search_history.json")
+
+
+def load_search_history():
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(e)
+    return []
+
+
+def save_search_history(history):
+    try:
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(history, f, indent=2)
+    except Exception as e:
+        print(e)
+
+
 # App Header
 st.markdown('<div class="app-title">ERA</div>', unsafe_allow_html=True)
 st.markdown('<div class="app-subtitle">AI Research Assistant for Developers</div>', unsafe_allow_html=True)
@@ -241,6 +268,38 @@ if "running" not in st.session_state:
     st.session_state.running = False
 if "current_query" not in st.session_state:
     st.session_state.current_query = ""
+if "search_history" not in st.session_state:
+    st.session_state.search_history = load_search_history()
+
+# Search History Sidebar
+with st.sidebar:
+    st.markdown("### Search History")
+    if st.session_state.search_history:
+        for idx, entry in enumerate(st.session_state.search_history):
+            label = entry.get("query", "Unknown")
+            ts = entry.get("timestamp", "")
+            if st.button(
+                f"{label}  ·  {ts}",
+                key=f"history_{idx}",
+                use_container_width=True,
+            ):
+                loaded_companies = []
+                for c in entry.get("companies", []):
+                    try:
+                        loaded_companies.append(CompanyInfo(**c))
+                    except Exception:
+                        continue
+                st.session_state.current_query = entry.get("query", "")
+                st.session_state.results = loaded_companies
+                st.session_state.recommendation = entry.get("recommendation", "")
+                st.rerun()
+    else:
+        st.caption("No searches yet.")
+
+    if st.button("Clear History", key="btn_clear_history", use_container_width=True):
+        st.session_state.search_history = []
+        save_search_history([])
+        st.rerun()
 
 # Progress indicator placeholder
 progress_placeholder = st.empty()
@@ -274,6 +333,17 @@ if research_clicked and query:
         st.session_state.recommendation = result.analysis
     except Exception as e:
         st.error(f"Error: {e}")
+
+    if st.session_state.results:
+        entry = {
+            "query": st.session_state.current_query,
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "companies": [c.model_dump() for c in st.session_state.results],
+            "recommendation": st.session_state.recommendation,
+        }
+        st.session_state.search_history.insert(0, entry)
+        st.session_state.search_history = st.session_state.search_history[:10]
+        save_search_history(st.session_state.search_history)
 
     progress_placeholder.markdown(f"""
     <div class="progress-track">
@@ -324,7 +394,7 @@ for c in companies:
                 <span class="company-name">{c["name"]}</span>
                 <span class="company-url">{c["url"]}</span>
             </div>
-            <div class="company-desc">{c["desc"]}</div>
+            <div class="company-desc">{c["desc"] if c["desc"] not in ("Failed", "None") else ""}</div>
             <div class="pill-group">{tag_html}</div>
         </div>
         <div class="company-right">
