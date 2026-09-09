@@ -35,3 +35,14 @@ class ResearchState(BaseModel):
     companies: List[CompanyInfo] = []
     search_results: List[Dict[str, Any]] = []
     analysis: Optional[str] = None
+
+
+class RepoAnalysis(BaseModel):
+    """Structured output for GitHub repository analysis"""
+    name: str
+    description: str
+    stars: int
+    language: str
+    topics: List[str] = []
+    dependencies: List[str] = []
+    suggestion: str = ""
