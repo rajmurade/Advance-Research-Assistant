@@ -7,353 +7,217 @@ load_dotenv()
 # pyrefly: ignore [missing-import]
 import streamlit as st
 # pyrefly: ignore [missing-import]
-from src.models import CompanyInfo
+from src.models import CompanyInfo, RepoAnalysis
+# pyrefly: ignore [missing-import]
+from src.github_service import get_repo_info, get_dependencies, search_repos
 
 # Configure page settings
 st.set_page_config(
     page_title="ERA - Developer Tools Research Agent",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# Custom Styling (JetBrains Mono terminal-inspired dark design)
+# Custom Styling (Linear / Vercel / GitHub minimalist monochrome aesthetic)
 CUSTOM_CSS = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
     /* Hide Streamlit header, footer, and default chrome */
-    #MainMenu, header[data-testid="stHeader"], footer, .stAppDeployButton {visibility: hidden;}
-
+    #MainMenu, header, footer {visibility: hidden;}
+    
     /* Global styling */
     .stApp {
-        background-color: #131313;
-        color: #e5e2e1;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background-color: #161616;
+        color: #e5e5e5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     /* Main container constraint */
     .main .block-container {
-        max-width: 880px;
-        padding-top: 2.25rem;
-        padding-bottom: 3rem;
+        max-width: 900px;
+        padding-top: 3.5rem;
+        padding-bottom: 4rem;
         padding-left: 2rem;
         padding-right: 2rem;
         margin: 0 auto;
     }
 
-    /* ===== Cockpit Header ===== */
-    .era-header {
-        background-color: #0e0e0e;
-        border: 1px solid #2a2a2a;
-        border-radius: 2px;
-        padding: 24px;
-        margin-bottom: 24px;
-    }
-    .era-header-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
-    }
-    .era-brand {
-        display: flex;
-        align-items: baseline;
-        gap: 12px;
-    }
-    .era-title {
-        font-family: 'JetBrains Mono', monospace;
+    /* Typography */
+    .app-title {
         font-size: 32px;
         font-weight: 600;
-        letter-spacing: 0.12em;
-        color: #e5e2e1;
-        line-height: 1;
-    }
-    .era-engine {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 10px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #c9a96e;
-    }
-    .era-subtitle {
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #6b6560;
-        margin-top: 6px;
-    }
-    .era-meta {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        text-align: right;
-        line-height: 1.7;
-    }
-    .era-meta-primary { color: #c9a96e; letter-spacing: 0.06em; }
-    .era-meta-muted { color: #6b6560; }
-    .era-header-divider {
-        height: 1px;
-        background-color: #c9a96e;
-        opacity: 0.8;
-        margin: 18px 0;
+        color: #FFFFFF;
+        letter-spacing: -0.02em;
+        margin-bottom: 4px;
+        line-height: 1.1;
     }
 
-    /* ===== Search row ===== */
+    .app-subtitle {
+        font-size: 15px;
+        color: #888888;
+        font-weight: 400;
+        margin-bottom: 28px;
+    }
+
+    /* Search row customization */
     div[data-testid="stTextInput"] > div > div > input {
-        background-color: #1c1b1b !important;
-        border: 1px solid #2a2a2a !important;
-        color: #e5e2e1 !important;
-        border-radius: 2px !important;
-        padding: 12px 14px !important;
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 13px !important;
+        background-color: #212121 !important;
+        border: 1px solid #2e2e2e !important;
+        color: #e5e5e5 !important;
+        border-radius: 6px !important;
+        padding: 10px 14px !important;
+        font-size: 14px !important;
     }
     div[data-testid="stTextInput"] > div > div > input:focus {
-        border-color: #c9a96e !important;
+        border-color: #444444 !important;
         box-shadow: none !important;
     }
 
-    /* Buttons */
+    /* Search & Action button styling */
     div.stButton > button {
-        border-radius: 2px !important;
-        font-family: 'JetBrains Mono', monospace !important;
-        font-weight: 600 !important;
-        font-size: 13px !important;
-        letter-spacing: 0.06em !important;
-        transition: all 0.15s ease;
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        transition: opacity 0.15s ease;
     }
 
-    /* ===== Progress & Status ===== */
+    /* Progress & Status */
     .progress-track {
-        height: 4px;
-        background-color: #2a2a2a;
-        border-radius: 1px;
+        width: 100%;
+        height: 2px;
+        background-color: #242424;
+        margin-top: 14px;
+        margin-bottom: 10px;
         position: relative;
     }
     .progress-fill {
-        height: 4px;
-        background-color: #c9a96e;
-        border-radius: 1px;
+        height: 2px;
+        background-color: #888888;
     }
     .status-text {
-        font-family: 'JetBrains Mono', monospace;
-        color: #c9a96e;
-        font-size: 12px;
-        letter-spacing: 0.06em;
-        margin-top: 8px;
-        margin-bottom: 24px;
+        color: #777777;
+        font-size: 13px;
+        font-family: monospace;
+        margin-bottom: 36px;
     }
 
-    /* ===== Search History expandable drawer ===== */
-    div[data-testid="stExpander"] {
-        background-color: #0e0e0e !important;
-        border: 1px solid #2a2a2a !important;
-        border-radius: 2px !important;
-        margin-bottom: 24px !important;
-        overflow: hidden;
-    }
-    div[data-testid="stExpander"] summary {
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 12px !important;
-        letter-spacing: 0.04em !important;
-        color: #e5e2e1 !important;
-        padding: 14px 16px !important;
-    }
-    div[data-testid="stExpander"] summary:hover { background-color: #1c1b1b !important; }
-    div[data-testid="stExpander"] summary p {
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 12px !important;
-        letter-spacing: 0.04em !important;
-        color: #e5e2e1 !important;
-    }
-    div[data-testid="stExpander"] div[data-testid="stButton"] > button {
-        background: transparent !important;
-        border: none !important;
-        border-left: 2px solid transparent !important;
-        border-radius: 0 !important;
-        color: #e5e2e1 !important;
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 12px !important;
-        text-align: left !important;
-        padding: 8px 10px !important;
-        width: 100% !important;
-    }
-    div[data-testid="stExpander"] div[data-testid="stButton"] > button:hover {
-        background-color: #201f1f !important;
-        border-left-color: #c9a96e !important;
-    }
-    .era-history-ts {
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 11px !important;
-        color: #6b6560 !important;
-        text-align: right !important;
-        white-space: nowrap;
-        padding-top: 9px !important;
-    }
-    .era-history-clear {
-        margin-top: 8px;
-        border-top: 1px solid #2a2a2a;
-        padding-top: 8px;
-    }
-
-    /* ===== Recommendation Callout ===== */
-    .recommendation-card {
-        background-color: #1c1b1b;
-        border: 1px solid #2a2a2a;
-        border-left: 3px solid #c9a96e;
-        border-radius: 2px;
-        padding: 24px;
-        margin-top: 24px;
-        margin-bottom: 32px;
+    /* Company entries */
+    .company-entry {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-    }
-    .recommendation-title {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: #c9a96e;
-        margin-bottom: 12px;
-    }
-    .recommendation-body {
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #e5e2e1;
-        line-height: 1.6;
-    }
-    .spark-icon {
-        color: #c9a96e;
-        font-size: 20px;
-        margin-left: 24px;
-        flex-shrink: 0;
+        padding-bottom: 24px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid #222222;
     }
 
-    /* ===== Company entries section ===== */
-    .era-company-section {
-        background-color: #0e0e0e;
-        border: 1px solid #2a2a2a;
-        border-radius: 2px;
-        margin-bottom: 32px;
-        overflow: hidden;
+    .company-left {
+        flex: 1 1 55%;
+        padding-right: 32px;
     }
-    .era-company-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        padding: 14px 24px;
-        background-color: #1c1b1b;
-        border-bottom: 1px solid #2a2a2a;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: #e5e2e1;
-    }
-    .era-company-criteria {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        font-weight: 400;
-        letter-spacing: 0.03em;
-        text-transform: none;
-        color: #6b6560;
-    }
-    .company-entry {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-        padding: 24px;
-        border-bottom: 1px solid #2a2a2a;
-    }
-    .company-entry:last-child { border-bottom: none; }
-    @media (min-width: 900px) {
-        .company-entry { flex-direction: row; }
-    }
-    .company-left { flex: 1 1 auto; }
+
     .company-name {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 600;
-        letter-spacing: -0.01em;
-        color: #c9a96e;
+        color: #FFFFFF;
         display: inline-block;
-        margin-right: 12px;
+        margin-right: 8px;
     }
+
     .company-url {
-        font-family: 'JetBrains Mono', monospace;
         font-size: 13px;
-        color: #6b6560;
-        text-decoration: none;
+        color: #666666;
+        font-family: monospace;
         vertical-align: middle;
+        text-decoration: none;
     }
-    .company-url:hover { color: #c9a96e; }
+
     .company-desc {
-        color: #cdc5bf;
-        font-size: 13px;
-        line-height: 1.6;
-        margin: 10px 0 16px;
+        color: #aaaaaa;
+        font-size: 14px;
+        margin-top: 6px;
+        margin-bottom: 14px;
+        line-height: 1.4;
     }
-    .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .pill-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
     .pill-chip {
         display: inline-flex;
         align-items: center;
-        border: 1px solid rgba(201, 169, 110, 0.6);
-        background-color: #1c1b1b;
-        color: #e5e2e1;
-        border-radius: 2px;
-        padding: 3px 10px;
-        font-size: 11px;
-        font-family: 'JetBrains Mono', monospace;
-        letter-spacing: 0.02em;
-    }
-    .company-right {
-        flex: 0 0 320px;
-        font-family: 'JetBrains Mono', monospace;
+        border: 1px solid #333333;
+        border-radius: 100px;
+        padding: 3px 12px;
         font-size: 12px;
-        line-height: 1.7;
-        border-left: 1px solid #2a2a2a;
-        padding-left: 24px;
+        color: #cccccc;
+        background-color: transparent;
+        letter-spacing: 0.01em;
     }
-    @media (max-width: 899px) {
-        .company-right {
-            flex-basis: auto;
-            border-left: none;
-            border-top: 1px solid #2a2a2a;
-            padding-left: 0;
-            padding-top: 16px;
-        }
-    }
-    .meta-row { margin-bottom: 16px; }
-    .meta-label {
-        display: block;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 10px;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: #6b6560;
-        margin-bottom: 4px;
-    }
-    .meta-value { color: #e5e2e1; }
 
-    /* ===== Footer ===== */
-    .era-footer-text {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        color: #6b6560;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    .company-right {
+        flex: 1 1 45%;
+        font-size: 13px;
+        line-height: 1.8;
     }
-    .era-footer-dot { color: #c9a96e; }
+
+    .meta-row {
+        color: #888888;
+    }
+    .meta-label {
+        font-weight: 600;
+        color: #dddddd;
+    }
+    .meta-value {
+        color: #999999;
+    }
+
+    /* Recommendation Callout */
+    .recommendation-card {
+        border-left: 2px solid #D8D0C0;
+        padding: 8px 18px;
+        margin-top: 24px;
+        margin-bottom: 28px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .recommendation-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 6px;
+    }
+
+    .recommendation-body {
+        font-size: 14px;
+        color: #b0b0b0;
+        line-height: 1.5;
+    }
+
+    .spark-icon {
+        color: #555555;
+        font-size: 26px;
+        margin-left: 24px;
+        flex-shrink: 0;
+    }
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Search history helpers
 HISTORY_FILE = os.path.join(os.path.dirname(__file__), "search_history.json")
@@ -388,262 +252,454 @@ if "current_query" not in st.session_state:
     st.session_state.current_query = ""
 if "search_history" not in st.session_state:
     st.session_state.search_history = load_search_history()
+if "app_mode" not in st.session_state:
+    st.session_state.app_mode = "Tool Research"
+if "repo_results" not in st.session_state:
+    st.session_state.repo_results = []
+if "repo_suggestion" not in st.session_state:
+    st.session_state.repo_suggestion = ""
+if "github_query" not in st.session_state:
+    st.session_state.github_query = ""
 
 # App Header
-st.markdown("""
-<div class="era-header">
-    <div class="era-header-row">
-        <div>
-            <div class="era-brand">
-                <span class="era-title">ERA</span>
-                <span class="era-engine">[ DEV_SYNTHESIS_ENGINE ]</span>
+st.markdown('<div class="app-title">ERA</div>', unsafe_allow_html=True)
+st.markdown('<div class="app-subtitle">AI Research Assistant for Developers</div>', unsafe_allow_html=True)
+
+# Mode Toggle
+st.session_state.app_mode = st.radio(
+    "Mode",
+    ["Tool Research", "GitHub Analysis"],
+    horizontal=True,
+    label_visibility="collapsed",
+)
+
+if st.session_state.app_mode == "Tool Research":
+    # --- Tool Research Mode ---
+    col_search, col_btn = st.columns([5.2, 1], gap="small")
+    with col_search:
+        query = st.text_input(
+            "Search Query",
+            placeholder="Compare authentication providers...",
+            label_visibility="collapsed"
+        )
+
+    with col_btn:
+        st.markdown("""
+        <style>
+        div[data-testid="stColumn"]:nth-child(2) button {
+            background-color: #ECE7DF !important;
+            color: #161616 !important;
+            border: none !important;
+            height: 42px !important;
+            width: 100% !important;
+        }
+        div[data-testid="stColumn"]:nth-child(2) button:hover {
+            background-color: #dfdad1 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        research_clicked = st.button("Research", use_container_width=True)
+
+    # Search History
+    if st.session_state.search_history:
+        with st.expander("📋 Search History"):
+            for idx, entry in enumerate(st.session_state.search_history):
+                col1, col2 = st.columns([5, 1])
+                with col1:
+                    if st.button(entry["query"], key=f"history_{idx}", use_container_width=True):
+                        loaded_companies = []
+                        for c in entry.get("companies", []):
+                            try:
+                                loaded_companies.append(CompanyInfo(**c))
+                            except Exception:
+                                continue
+                        st.session_state.current_query = entry.get("query", "")
+                        st.session_state.results = loaded_companies
+                        st.session_state.recommendation = entry["recommendation"]
+                        st.rerun()
+                with col2:
+                    st.markdown(
+                        f'<div style="color:#666;font-size:12px;padding-top:8px">{entry.get("timestamp", "")}</div>',
+                        unsafe_allow_html=True,
+                    )
+            st.markdown("---")
+            if st.button("Clear History", key="btn_clear_history"):
+                st.session_state.search_history = []
+                save_search_history([])
+                st.rerun()
+
+    # Progress indicator placeholder
+    progress_placeholder = st.empty()
+
+    # Run agent when Research clicked
+    if research_clicked and query:
+        st.session_state.running = True
+        st.session_state.current_query = query
+
+        steps = [
+            (10, "— Finding articles..."),
+            (40, "— Researching tools..."),
+            (80, "— Analyzing APIs..."),
+            (95, "— Generating recommendation..."),
+        ]
+
+        for pct, label in steps:
+            progress_placeholder.markdown(f"""
+            <div class="progress-track">
+                <div class="progress-fill" style="width:{pct}%"></div>
             </div>
-            <div class="era-subtitle">AI Research Assistant for Developers</div>
-        </div>
-        <div class="era-meta">
-            <div class="era-meta-primary">[ CLI.V2.4 // NODE_01 // ONLINE ]</div>
-            <div class="era-meta-muted">BUFFER: FLUSHED // LATENCY: LOW</div>
-        </div>
-    </div>
-    <div class="era-header-divider"></div>
-</div>
-""", unsafe_allow_html=True)
+            <div class="status-text">{label}</div>
+            """, unsafe_allow_html=True)
 
-# Search Bar and Research Button
-col_search, col_btn = st.columns([5.2, 1], gap="small")
-with col_search:
-    query = st.text_input(
-        "Search Query",
-        placeholder="Enter research prompt or stack analysis query...",
-        label_visibility="collapsed"
-    )
+        try:
+            # pyrefly: ignore [missing-import]
+            from src.workflow import Workflow
+            workflow = Workflow()
+            result = workflow.run(query)
+            st.session_state.results = result.companies
+            st.session_state.recommendation = result.analysis
+        except Exception as e:
+            st.error(f"Error: {e}")
 
-with col_btn:
-    st.markdown("""
-    <style>
-    div[data-testid="stColumn"]:nth-child(2) button {
-        background-color: #c9a96e !important;
-        color: #131313 !important;
-        border: none !important;
-        height: 46px !important;
-        width: 100% !important;
-        letter-spacing: 0.1em !important;
-        font-family: 'JetBrains Mono', monospace !important;
-        font-weight: 600 !important;
-        font-size: 12px !important;
-        border-radius: 2px !important;
-    }
-    div[data-testid="stColumn"]:nth-child(2) button:hover {
-        background-color: #e6c487 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    research_clicked = st.button("RESEARCH", use_container_width=True)
+        if st.session_state.results:
+            entry = {
+                "query": st.session_state.current_query,
+                "timestamp": datetime.now().isoformat(timespec="seconds"),
+                "companies": [c.model_dump() for c in st.session_state.results],
+                "recommendation": st.session_state.recommendation,
+            }
+            st.session_state.search_history.insert(0, entry)
+            st.session_state.search_history = st.session_state.search_history[:10]
+            save_search_history(st.session_state.search_history)
 
-# Search History
-if st.session_state.search_history:
-    with st.expander(f"[ SEARCH HISTORY // {len(st.session_state.search_history):02d} CACHED RUNS ]"):
-        for idx, entry in enumerate(st.session_state.search_history):
-            col1, col2 = st.columns([5, 1])
-            with col1:
-                if st.button("▸  " + entry["query"], key=f"history_{idx}", use_container_width=True):
-                    loaded_companies = []
-                    for c in entry.get("companies", []):
-                        try:
-                            loaded_companies.append(CompanyInfo(**c))
-                        except Exception:
-                            continue
-                    st.session_state.current_query = entry.get("query", "")
-                    st.session_state.results = loaded_companies
-                    st.session_state.recommendation = entry["recommendation"]
-                    st.rerun()
-            with col2:
-                st.markdown(
-                    f'<div class="era-history-ts">{entry.get("timestamp", "")}</div>',
-                    unsafe_allow_html=True,
-                )
-        st.markdown('<div class="era-history-clear"></div>', unsafe_allow_html=True)
-        if st.button("[ CLEAR HISTORY ]", key="btn_clear_history"):
-            st.session_state.search_history = []
-            save_search_history([])
-            st.rerun()
-
-# Progress indicator placeholder
-progress_placeholder = st.empty()
-
-# Run agent when Research clicked
-if research_clicked and query:
-    st.session_state.running = True
-    st.session_state.current_query = query
-
-    steps = [
-        (10, "— Finding articles..."),
-        (40, "— Researching tools..."),
-        (80, "— Analyzing APIs..."),
-        (95, "— Generating recommendation..."),
-    ]
-
-    for pct, label in steps:
         progress_placeholder.markdown(f"""
         <div class="progress-track">
-            <div class="progress-fill" style="width:{pct}%"></div>
+            <div class="progress-fill" style="width:100%"></div>
         </div>
-        <div class="status-text">{label}</div>
+        <div class="status-text">— Done.</div>
+        """, unsafe_allow_html=True)
+        st.session_state.running = False
+
+    elif not st.session_state.results:
+        progress_placeholder.markdown("""
+        <div class="progress-track">
+            <div class="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="status-text">— Enter a query and click Research.</div>
         """, unsafe_allow_html=True)
 
-    try:
-        # pyrefly: ignore [missing-import]
-        from src.workflow import Workflow
-        workflow = Workflow()
-        result = workflow.run(query)
-        st.session_state.results = result.companies
-        st.session_state.recommendation = result.analysis
-    except Exception as e:
-        st.error(f"Error: {e}")
-
+    # Build companies list from real data or empty
+    companies = []
     if st.session_state.results:
-        entry = {
-            "query": st.session_state.current_query,
-            "timestamp": datetime.now().isoformat(timespec="seconds"),
-            "companies": [c.model_dump() for c in st.session_state.results],
-            "recommendation": st.session_state.recommendation,
-        }
-        st.session_state.search_history.insert(0, entry)
-        st.session_state.search_history = st.session_state.search_history[:10]
-        save_search_history(st.session_state.search_history)
+        for c in st.session_state.results:
+            tech = " • ".join(c.tech_stack) if isinstance(c.tech_stack, list) else c.tech_stack
+            langs = " • ".join(c.language_support) if isinstance(c.language_support, list) else c.language_support
+            integrations = " • ".join(c.integration_capabilities) if isinstance(c.integration_capabilities, list) else c.integration_capabilities
+            companies.append({
+                "name": c.name,
+                "url": c.website,
+                "desc": c.description,
+                "tags": [
+                    c.pricing_model,
+                    "Open Source ✓" if c.is_open_source else "Open Source ✕",
+                    "API ✓" if c.api_available else "API ✗"
+                ],
+                "tech_stack": tech,
+                "languages": langs,
+                "integrations": integrations
+            })
 
-    progress_placeholder.markdown(f"""
-    <div class="progress-track">
-        <div class="progress-fill" style="width:100%"></div>
-    </div>
-    <div class="status-text">— Done.</div>
-    """, unsafe_allow_html=True)
-    st.session_state.running = False
+    recommendation_text = st.session_state.recommendation or ""
 
-elif not st.session_state.results:
-    progress_placeholder.markdown("""
-    <div class="progress-track">
-        <div class="progress-fill" style="width:0%"></div>
-    </div>
-    <div class="status-text">— Enter a query and click Research.</div>
-    """, unsafe_allow_html=True)
-
-# Build companies list from real data or empty
-companies = []
-if st.session_state.results:
-    for c in st.session_state.results:
-        tech = " • ".join(c.tech_stack) if isinstance(c.tech_stack, list) else c.tech_stack
-        langs = " • ".join(c.language_support) if isinstance(c.language_support, list) else c.language_support
-        integrations = " • ".join(c.integration_capabilities) if isinstance(c.integration_capabilities, list) else c.integration_capabilities
-        companies.append({
-            "name": c.name,
-            "url": c.website,
-            "desc": c.description,
-            "tags": [
-                c.pricing_model,
-                "Open Source ✓" if c.is_open_source else "Open Source ✕",
-                "API ✓" if c.api_available else "API ✗"
-            ],
-            "tech_stack": tech,
-            "languages": langs,
-            "integrations": integrations
-        })
-
-recommendation_text = st.session_state.recommendation or ""
-
-# Render company entries
-if companies:
-    entries_html = ""
+    # Render company entries
     for c in companies:
         tag_html = "".join([f'<span class="pill-chip">{t}</span>' for t in c["tags"]])
-        entries_html += f"""
+        entry_html = f"""
         <div class="company-entry">
             <div class="company-left">
                 <div>
                     <span class="company-name">{c["name"]}</span>
-                    <a class="company-url" href="{c["url"]}" target="_blank">{c["url"]}</a>
+                    <span class="company-url">{c["url"]}</span>
                 </div>
                 <div class="company-desc">{c["desc"] if c["desc"] not in ("Failed", "None") else ""}</div>
                 <div class="pill-group">{tag_html}</div>
             </div>
             <div class="company-right">
-                <div class="meta-row"><span class="meta-label">Tech Stack</span><span class="meta-value">{c["tech_stack"]}</span></div>
-                <div class="meta-row"><span class="meta-label">Languages</span><span class="meta-value">{c["languages"]}</span></div>
-                <div class="meta-row"><span class="meta-label">Integrations</span><span class="meta-value">{c["integrations"]}</span></div>
+                <div class="meta-row"><span class="meta-label">Tech Stack:</span> <span class="meta-value">{c["tech_stack"]}</span></div>
+                <div class="meta-row"><span class="meta-label">Languages:</span> <span class="meta-value">{c["languages"]}</span></div>
+                <div class="meta-row"><span class="meta-label">Integrations:</span> <span class="meta-value">{c["integrations"]}</span></div>
             </div>
         </div>
         """
-    section_html = f"""
-    <div class="era-company-section">
-        <div class="era-company-header">
-            <span>[ {len(companies):02d} DISCOVERED ENTITIES // PARALLEL AUDIT ]</span>
-            <span class="era-company-criteria">CRITERIA: RELIABILITY, DX, PRICING, TECH STACK</span>
-        </div>
-        {entries_html}
-    </div>
-    """
-    st.markdown(section_html, unsafe_allow_html=True)
+        st.markdown(entry_html, unsafe_allow_html=True)
 
-# Recommendation Section
-if recommendation_text:
-    st.markdown(f"""
-    <div class="recommendation-card">
-        <div>
-            <div class="recommendation-title">// Synthesis &amp; Architectural Recommendation</div>
-            <div class="recommendation-body">{recommendation_text}</div>
+    # Recommendation Section
+    if recommendation_text:
+        st.markdown(f"""
+        <div class="recommendation-card">
+            <div>
+                <div class="recommendation-title">Recommendation</div>
+                <div class="recommendation-body">{recommendation_text}</div>
+            </div>
+            <div class="spark-icon">✦</div>
         </div>
-        <div class="spark-icon">✦</div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-# Export Markdown
-col_empty, col_export = st.columns([3.2, 1])
-with col_empty:
-    st.markdown(
-        '<div class="era-footer-text"><span class="era-footer-dot">●</span>&nbsp;&nbsp;'
-        f'ERA Research Agent — {len(companies)} entities indexed // source verified</div>',
-        unsafe_allow_html=True,
-    )
-with col_export:
+    # Export Markdown
+    col_empty, col_export = st.columns([4.8, 1.2])
+    with col_export:
+        st.markdown("""
+        <style>
+        div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] button {
+            background-color: #1f1f1f !important;
+            color: #999999 !important;
+            border: 1px solid #2d2d2d !important;
+            font-size: 13px !important;
+        }
+        div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] button:hover {
+            color: #ffffff !important;
+            border-color: #444444 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        if st.session_state.results and companies:
+            md = f"# ERA Research Report\n\n**Query:** {st.session_state.current_query}\n\n"
+            for c in companies:
+                md += f"## {c['name']}\n"
+                md += f"- **URL:** {c['url']}\n"
+                md += f"- **Description:** {c['desc']}\n"
+                md += f"- **Tech Stack:** {c['tech_stack']}\n"
+                md += f"- **Languages:** {c['languages']}\n"
+                md += f"- **Integrations:** {c['integrations']}\n\n"
+            md += f"## Recommendation\n{recommendation_text}"
+            st.download_button(
+                "Export Markdown",
+                md,
+                file_name="era_report.md",
+                mime="text/markdown",
+                use_container_width=True,
+                key="btn_export"
+            )
+        else:
+            st.button("Export Markdown", key="btn_export", use_container_width=True)
+
+else:
+    # --- GitHub Analysis Mode ---
     st.markdown("""
     <style>
-    div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] button,
-    div[data-testid="stColumn"]:nth-child(2) div[data-testid="stDownloadButton"] button {
-        background-color: #1c1b1b !important;
-        color: #999 !important;
-        border: 1px solid #2d2d2d !important;
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 12px !important;
-        letter-spacing: 0.06em !important;
-        padding: 12px 16px !important;
-        border-radius: 2px !important;
+    div[data-testid="stColumn"]:nth-child(2) button {
+        background-color: #ECE7DF !important;
+        color: #161616 !important;
+        border: none !important;
+        height: 42px !important;
         width: 100% !important;
     }
-    div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] button:hover,
-    div[data-testid="stColumn"]:nth-child(2) div[data-testid="stDownloadButton"] button:hover {
-        color: #e5e2e1 !important;
-        border-color: #c9a96e !important;
+    div[data-testid="stColumn"]:nth-child(2) button:hover {
+        background-color: #dfdad1 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    if st.session_state.results and companies:
-        md = f"# ERA Research Report\n\n**Query:** {st.session_state.current_query}\n\n"
-        for c in companies:
-            md += f"## {c['name']}\n"
-            md += f"- **URL:** {c['url']}\n"
-            md += f"- **Description:** {c['desc']}\n"
-            md += f"- **Tech Stack:** {c['tech_stack']}\n"
-            md += f"- **Languages:** {c['languages']}\n"
-            md += f"- **Integrations:** {c['integrations']}\n\n"
-        md += f"## Recommendation\n{recommendation_text}"
-        st.download_button(
-            "[ EXPORT.MD ]",
-            md,
-            file_name="era_report.md",
-            mime="text/markdown",
-            use_container_width=True,
-            key="btn_export"
+    col_search, col_btn = st.columns([5.2, 1], gap="small")
+    with col_search:
+        github_input = st.text_input(
+            "GitHub Input",
+            placeholder="Paste a GitHub repo URL or describe what you need...",
+            label_visibility="collapsed",
+            key="gh_input",
         )
-    else:
-        st.button("[ EXPORT.MD ]", key="btn_export", use_container_width=True)
+    with col_btn:
+        analyze_clicked = st.button("Analyze", use_container_width=True, key="gh_analyze_btn")
+
+    github_progress = st.empty()
+
+    if analyze_clicked and github_input:
+        github_progress.markdown("""
+        <div class="progress-track">
+            <div class="progress-fill" style="width:40%"></div>
+        </div>
+        <div class="status-text">— Fetching repository data...</div>
+        """, unsafe_allow_html=True)
+
+        is_url = "github.com" in github_input or "/" in github_input
+        try:
+            if is_url:
+                owner, repo_name = github_input.rstrip("/").split("/")[-2:]
+                repo_url = f"https://github.com/{owner}/{repo_name}"
+                repo_info = get_repo_info(repo_url)
+                deps = get_dependencies(repo_url)
+
+                suggestion = ""
+                try:
+                    # pyrefly: ignore [missing-import]
+                    from langchain_groq import ChatGroq
+                    from langchain_core.messages import HumanMessage, SystemMessage
+                    llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0.3, max_tokens=200)
+                    dep_list = ", ".join(deps[:15]) if deps else "not detected"
+                    response = llm.invoke([
+                        SystemMessage(content="You are a developer tools advisor. Give one concise, actionable suggestion."),
+                        HumanMessage(content=(
+                            f"Repo: {repo_info['name']}\n"
+                            f"Language: {repo_info['language']}\n"
+                            f"Dependencies: {dep_list}\n"
+                            f"Stars: {repo_info['stars']}\n"
+                            f"Give a short suggestion about alternatives or improvements for this stack."
+                        ))
+                    ])
+                    suggestion = response.content.strip()
+                except Exception:
+                    suggestion = f"Consider reviewing the {repo_info['language']} dependencies for newer alternatives."
+
+                st.session_state.repo_results = [RepoAnalysis(
+                    name=repo_info["name"],
+                    description=repo_info["description"],
+                    stars=repo_info["stars"],
+                    language=repo_info["language"],
+                    topics=repo_info["topics"],
+                    dependencies=deps,
+                    suggestion=suggestion,
+                )]
+                st.session_state.repo_suggestion = suggestion
+                st.session_state.github_query = github_input
+
+                github_progress.markdown("""
+                <div class="progress-track">
+                    <div class="progress-fill" style="width:100%"></div>
+                </div>
+                <div class="status-text">— Done.</div>
+                """, unsafe_allow_html=True)
+            else:
+                # Search mode
+                github_progress.markdown("""
+                <div class="progress-track">
+                    <div class="progress-fill" style="width:60%"></div>
+                </div>
+                <div class="status-text">— Searching GitHub repositories...</div>
+                """, unsafe_allow_html=True)
+
+                repos = search_repos(github_input, limit=5)
+
+                suggestion = ""
+                if repos:
+                    try:
+                        # pyrefly: ignore [missing-import]
+                        from langchain_groq import ChatGroq
+                        from langchain_core.messages import HumanMessage, SystemMessage
+                        llm = ChatGroq(model="openai/gpt-oss-20b", temperature=0.3, max_tokens=300)
+                        repo_summary = "\n".join([
+                            f"- {r['name']} ({r['language']}, {r['stars']}★): {r['description'][:80]}"
+                            for r in repos
+                        ])
+                        response = llm.invoke([
+                            SystemMessage(content="You are a developer tools advisor. Compare the listed repos and suggest the best option."),
+                            HumanMessage(content=(
+                                f"User is looking for: {github_input}\n"
+                                f"Found repos:\n{repo_summary}\n"
+                                f"Which repo is best and why? Give a concise recommendation."
+                            ))
+                        ])
+                        suggestion = response.content.strip()
+                    except Exception:
+                        suggestion = f"Found {len(repos)} repos matching your query. Review star counts and languages to decide."
+
+                st.session_state.repo_results = [
+                    RepoAnalysis(
+                        name=r["name"],
+                        description=r["description"],
+                        stars=r["stars"],
+                        language=r["language"],
+                        topics=r["topics"],
+                        dependencies=r["dependencies"],
+                        suggestion="",
+                    )
+                    for r in repos
+                ]
+                st.session_state.repo_suggestion = suggestion
+                st.session_state.github_query = github_input
+
+                github_progress.markdown("""
+                <div class="progress-track">
+                    <div class="progress-fill" style="width:100%"></div>
+                </div>
+                <div class="status-text">— Done.</div>
+                """, unsafe_allow_html=True)
+
+        except Exception as e:
+            st.error(f"Error: {e}")
+            github_progress.empty()
+
+    # Render repo cards
+    for i, repo in enumerate(st.session_state.repo_results):
+        topics_html = "".join([f'<span class="pill-chip">{t}</span>' for t in repo.topics]) if repo.topics else ""
+        deps_display = ", ".join(repo.dependencies[:10]) if repo.dependencies else "—"
+        entry_html = f"""
+        <div class="company-entry">
+            <div class="company-left">
+                <div>
+                    <span class="company-name">{repo.name}</span>
+                    <span class="company-url">{repo.stars} ★</span>
+                </div>
+                <div class="company-desc">{repo.description}</div>
+                <div class="pill-group">{topics_html}<span class="pill-chip">{repo.language}</span></div>
+            </div>
+            <div class="company-right">
+                <div class="meta-row"><span class="meta-label">Language:</span> <span class="meta-value">{repo.language}</span></div>
+                <div class="meta-row"><span class="meta-label">Stars:</span> <span class="meta-value">{repo.stars}</span></div>
+                <div class="meta-row"><span class="meta-label">Dependencies:</span> <span class="meta-value">{deps_display}</span></div>
+            </div>
+        </div>
+        """
+        st.markdown(entry_html, unsafe_allow_html=True)
+
+    # AI Suggestion Section
+    if st.session_state.repo_suggestion:
+        st.markdown(f"""
+        <div class="recommendation-card">
+            <div>
+                <div class="recommendation-title">Suggestion</div>
+                <div class="recommendation-body">{st.session_state.repo_suggestion}</div>
+            </div>
+            <div class="spark-icon">✦</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Export GitHub results
+    col_empty, col_export = st.columns([4.8, 1.2])
+    with col_export:
+        st.markdown("""
+        <style>
+        div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] button {
+            background-color: #1f1f1f !important;
+            color: #999999 !important;
+            border: 1px solid #2d2d2d !important;
+            font-size: 13px !important;
+        }
+        div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] button:hover {
+            color: #ffffff !important;
+            border-color: #444444 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        if st.session_state.repo_results:
+            md = f"# ERA GitHub Analysis\n\n**Query:** {st.session_state.github_query}\n\n"
+            for repo in st.session_state.repo_results:
+                md += f"## {repo.name}\n"
+                md += f"- **Stars:** {repo.stars}\n"
+                md += f"- **Language:** {repo.language}\n"
+                md += f"- **Description:** {repo.description}\n"
+                md += f"- **Topics:** {', '.join(repo.topics)}\n"
+                md += f"- **Dependencies:** {', '.join(repo.dependencies)}\n\n"
+            if st.session_state.repo_suggestion:
+                md += f"## Suggestion\n{st.session_state.repo_suggestion}"
+            st.download_button(
+                "Export Markdown",
+                md,
+                file_name="era_github_report.md",
+                mime="text/markdown",
+                use_container_width=True,
+                key="btn_export_gh"
+            )
+        else:
+            st.button("Export Markdown", key="btn_export_gh", use_container_width=True)
