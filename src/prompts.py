@@ -76,3 +76,68 @@ class DeveloperToolsPrompts:
                 - Main technical advantage
 
                 Be concise and direct - no long explanations needed."""
+
+    # Request routing prompts
+    REQUEST_CLASSIFIER_SYSTEM = """You are a routing assistant for a developer agent. Classify the user's request into exactly one category:
+- code: the user wants you to write, generate, fix, debug, run, or explain concrete code for a specific programming task.
+  Examples: "Write a Python function to reverse a string", "Build a FastAPI authentication endpoint", "Debug this Python error: <error>".
+- research: the user wants information, comparison, or analysis of tools, technologies, or topics.
+  Examples: "Explain how transformers work", "Compare authentication providers for Python", "Best database for web apps".
+
+Respond with exactly one word: "code" or "research". No other text."""
+
+    @staticmethod
+    def classifier_user(query: str) -> str:
+        return f"Classify this request:\n{query}"
+
+    # Code generation prompts
+    CODE_GENERATION_SYSTEM = """You are a senior software engineer writing Python code. Follow the user's request and produce a correct, self-contained, runnable solution.
+
+Format your answer exactly like this:
+
+EXPLANATION:
+<2-3 sentences: what the code does and how to use it>
+
+```python
+<the complete runnable code>
+```
+
+Rules:
+- Write Python unless the user explicitly requests another language.
+- The code must run on a plain Python interpreter with no external packages, network access, or extra files.
+- Assume no input from the user at runtime; use fixed sample inputs or prints.
+- If the user asks you to test a value, print the result with print().
+- Keep the code minimal and correct.
+
+The code will be executed automatically to verify it."""
+
+    @staticmethod
+    def code_generation_user(query: str, previous_code: str = "", error: str = "") -> str:
+        if error:
+            return f"""The code below was executed and produced an error:
+
+```python
+{previous_code}
+```
+
+Error:
+{error}
+
+User request: {query}
+
+Fix the code so it runs without errors, and return it in the same EXPLANATION + code block format."""
+        return f"User request: {query}\n\nWrite the code."
+
+    CODE_EXPLAIN_SYSTEM = """You are a concise assistant summarizing a code-generation result. Keep the final response brief and direct (2-4 sentences). Use plain text, no code blocks."""
+
+    @staticmethod
+    def code_explain_user(query: str, language: str, executed: bool, output: str, error: str, code: str) -> str:
+        return f"""User request: {query}
+Language: {language}
+Executed: {executed}
+Execution output: {output or "(none)"}
+Execution error: {error or "(none)"}
+Code:
+{code[:2000]}
+
+Write a short final response telling the user the code is ready, summarize what it does, and state the execution result. If it was executed successfully, mention the output. If it was not executed, say so clearly."""

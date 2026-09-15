@@ -29,12 +29,33 @@ class CompanyInfo(BaseModel):
     developer_experience_rating: Optional[str] = None  # Poor, Good, Excellent
 
 
+class CodeOutput(BaseModel):
+    """Structured output for the code assistance workflow."""
+    code: str = ""
+    language: str = "python"
+    explanation: str = ""
+    output: str = ""
+    error: Optional[str] = None
+    executed: bool = False
+    retries: int = 0
+    execution_count: int = 0
+
+
 class ResearchState(BaseModel):
     query: str
+    request_type: str = "research"  # "code" or "research"
     extracted_tools: List[str] = []  # Tools extracted from articles
     companies: List[CompanyInfo] = []
     search_results: List[Dict[str, Any]] = []
     analysis: Optional[str] = None
+    code: str = ""
+    code_language: str = "python"
+    code_output: str = ""
+    code_error: Optional[str] = None
+    code_executed: bool = False
+    code_attempts: int = 0
+    code_explanation: str = ""
+    code_result: Optional[CodeOutput] = None
 
 
 class RepoAnalysis(BaseModel):

@@ -1,5 +1,9 @@
 import json
+import os
 import re
+import subprocess
+import sys
+import tempfile
 from typing import Dict, Any
 # pyrefly: ignore [missing-import]
 from langgraph.graph import StateGraph, END
@@ -7,9 +11,16 @@ from langgraph.graph import StateGraph, END
 from langchain_groq import ChatGroq
 # pyrefly: ignore [missing-import]
 from langchain_core.messages import HumanMessage, SystemMessage
-from .models import ResearchState, CompanyInfo, CompanyAnalysis
+from .models import ResearchState, CompanyInfo, CompanyAnalysis, CodeOutput
 from .firecrawl import TavilyService
 from .prompts import DeveloperToolsPrompts
+
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
 
 
 class Workflow:
@@ -50,13 +61,29 @@ class Workflow:
 
     def _build_workflow(self):
         graph = StateGraph(ResearchState)
+        graph.add_node("classify", self._classify_request)
         graph.add_node("extract_tools", self._extract_tools_step)
         graph.add_node("research", self._research_step)
         graph.add_node("analyze", self._analyze_step)
-        graph.set_entry_point("extract_tools")
+        graph.add_node("code_generate", self._code_generate_step)
+        graph.add_node("code_execute", self._code_execute_step)
+        graph.add_node("code_explain", self._code_explain_step)
+        graph.set_entry_point("classify")
+        graph.add_conditional_edges(
+            "classify",
+            self._route_by_type,
+            {"code": "code_generate", "research": "extract_tools"},
+        )
         graph.add_edge("extract_tools", "research")
         graph.add_edge("research", "analyze")
         graph.add_edge("analyze", END)
+        graph.add_edge("code_generate", "code_execute")
+        graph.add_conditional_edges(
+            "code_execute",
+            self._code_route,
+            {"retry": "code_generate", "done": "code_explain"},
+        )
+        graph.add_edge("code_explain", END)
         return graph.compile()
 
     def _extract_tools_step(self, state: ResearchState) -> Dict[str, Any]:
@@ -70,7 +97,7 @@ class Workflow:
             url = result.get("url", "")
             scraped = self.tavily.scrape_company_pages(url)
             if scraped:
-                all_content + scraped.markdown[:1500] + "\n\n"
+                all_content += scraped.markdown[:1500] + "\n\n"
 
         messages = [
             SystemMessage(content=self.prompts.TOOL_EXTRACTION_SYSTEM),
@@ -242,3 +269,129 @@ class Workflow:
         initial_state = ResearchState(query=query)
         final_state = self.workflow.invoke(initial_state)
         return ResearchState(**final_state)
+
+    MAX_CODE_ATTEMPTS = 3
+
+    def _classify_request(self, state: ResearchState) -> Dict[str, Any]:
+        try:
+            messages = [
+                SystemMessage(content=self.prompts.REQUEST_CLASSIFIER_SYSTEM),
+                HumanMessage(content=self.prompts.classifier_user(state.query)),
+            ]
+            response = self.llm.invoke(messages)
+            label = self._clean_response(str(response.content)).strip().lower()
+            return {"request_type": "code" if label.startswith("code") else "research"}
+        except Exception as e:
+            print(e)
+            return {"request_type": "research"}
+
+    def _route_by_type(self, state: ResearchState) -> str:
+        return "code" if state.request_type == "code" else "research"
+
+    def _extract_code(self, content: str):
+        fences = re.findall(r"```([a-zA-Z0-9+#\-]*)\n(.*?)```", content, re.DOTALL)
+        if fences:
+            language, code = fences[-1]
+            return code.strip(), (language.strip() or "python").lower()
+        return content.strip(), "python"
+
+    def _extract_explanation(self, content: str) -> str:
+        prefix = content.split("```")[0]
+        return prefix.replace("EXPLANATION:", "").strip()
+
+    def _code_generate_step(self, state: ResearchState) -> Dict[str, Any]:
+        if state.code_error:
+            messages = [
+                SystemMessage(content=self.prompts.CODE_GENERATION_SYSTEM),
+                HumanMessage(content=self.prompts.code_generation_user(state.query, state.code, state.code_error)),
+            ]
+        else:
+            messages = [
+                SystemMessage(content=self.prompts.CODE_GENERATION_SYSTEM),
+                HumanMessage(content=self.prompts.code_generation_user(state.query)),
+            ]
+        response = self.llm.invoke(messages)
+        content = str(response.content)
+        code, language = self._extract_code(content)
+        explanation = self._extract_explanation(content)
+        return {
+            "code": code,
+            "code_language": language,
+            "code_explanation": explanation,
+            "code_error": None,
+        }
+
+    def _code_sandbox_dir(self) -> str:
+        sandbox = os.path.join(tempfile.gettempdir(), "era_code_exec")
+        os.makedirs(sandbox, exist_ok=True)
+        return sandbox
+
+    def _execute_python(self, code: str):
+        try:
+            result = subprocess.run(
+                [sys.executable, "-"],
+                input=code,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=15,
+                cwd=self._code_sandbox_dir(),
+            )
+            output = (result.stdout or "").strip()
+            if result.returncode != 0:
+                error = (result.stderr or "").strip() or f"process exited with code {result.returncode}"
+                return output, error
+            return output, None
+        except subprocess.TimeoutExpired:
+            return "", "Execution timed out after 15 seconds."
+        except Exception as e:
+            return "", str(e)
+
+    def _code_execute_step(self, state: ResearchState) -> Dict[str, Any]:
+        language = (state.code_language or "").lower()
+        executed = False
+        output = ""
+        error = None
+        if language in ("python", "py", ""):
+            executed = True
+            output, error = self._execute_python(state.code)
+        return {
+            "code_output": output,
+            "code_error": error,
+            "code_executed": executed,
+            "code_attempts": state.code_attempts + 1,
+        }
+
+    def _code_route(self, state: ResearchState) -> str:
+        if state.code_error and state.code_attempts < self.MAX_CODE_ATTEMPTS:
+            return "retry"
+        return "done"
+
+    def _code_explain_step(self, state: ResearchState) -> Dict[str, Any]:
+        try:
+            messages = [
+                SystemMessage(content=self.prompts.CODE_EXPLAIN_SYSTEM),
+                HumanMessage(content=self.prompts.code_explain_user(
+                    state.query, state.code_language, state.code_executed,
+                    state.code_output, state.code_error or "", state.code,
+                )),
+            ]
+            response = self.llm.invoke(messages)
+            explanation = str(response.content).strip()
+        except Exception as e:
+            print(e)
+            explanation = state.code_explanation or "Code generated."
+        return {
+            "code_explanation": explanation,
+            "code_result": CodeOutput(
+                code=state.code,
+                language=state.code_language,
+                explanation=explanation,
+                output=state.code_output,
+                error=state.code_error,
+                executed=state.code_executed,
+                retries=max(0, state.code_attempts - 1),
+                execution_count=state.code_attempts,
+            ),
+        }

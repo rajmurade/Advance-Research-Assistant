@@ -260,6 +260,8 @@ if "repo_suggestion" not in st.session_state:
     st.session_state.repo_suggestion = ""
 if "github_query" not in st.session_state:
     st.session_state.github_query = ""
+if "code_result" not in st.session_state:
+    st.session_state.code_result = None
 
 # App Header
 st.markdown('<div class="app-title">ERA</div>', unsafe_allow_html=True)
@@ -356,6 +358,7 @@ if st.session_state.app_mode == "Tool Research":
             from src.workflow import Workflow
             workflow = Workflow()
             result = workflow.run(query)
+            st.session_state.code_result = result.code_result
             st.session_state.results = result.companies
             st.session_state.recommendation = result.analysis
         except Exception as e:
@@ -444,6 +447,25 @@ if st.session_state.app_mode == "Tool Research":
             <div class="spark-icon">✦</div>
         </div>
         """, unsafe_allow_html=True)
+
+    # Code Assistance Section
+    if st.session_state.code_result:
+        cr = st.session_state.code_result
+        lang = cr.language if cr.language in ("python", "javascript", "java", "cpp", "go", "rust", "sql", "typescript", "text") else "python"
+        st.markdown('<div class="recommendation-title" style="margin-top:24px;margin-bottom:8px;">Generated Code</div>', unsafe_allow_html=True)
+        st.code(cr.code, language=lang)
+        if cr.executed:
+            st.markdown('<div class="meta-label">Execution Output</div>', unsafe_allow_html=True)
+            st.code(cr.output or "(no output)", language="text")
+        if cr.error:
+            st.error(f"Execution error: {cr.error}")
+        if not cr.executed:
+            st.info("Code was not executed for this request.")
+        if cr.retries:
+            st.info(f"Corrected and re-run {cr.retries} time(s) after execution errors.")
+        if cr.explanation:
+            st.markdown('<div class="recommendation-title" style="margin-top:16px;">Result</div>', unsafe_allow_html=True)
+            st.markdown(cr.explanation)
 
     # Export Markdown
     col_empty, col_export = st.columns([4.8, 1.2])
