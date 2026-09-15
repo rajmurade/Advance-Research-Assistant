@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 
 
@@ -99,8 +100,25 @@ def get_dependencies(url: str) -> list[str]:
     return deps
 
 
+SEARCH_NL_RE = re.compile(
+    r'^(?:find|show|get|search|look|locate)\s+(?:me\s+)?(?:for\s+|up\s+)?'
+    r'(?:a\s+|an\s+|some\s+|any\s+|one\s+)?'
+    r'(?:repo\b|repository\b|repos\b|repositories\b|project\b|projects\b)'
+    r'\s+(?:with|for|about|containing|matching|that|surrounding|called|named)\s+',
+    re.IGNORECASE,
+)
+
+
+def _clean_search_query(query: str) -> str:
+    """Strip natural-language wrapper phrases so the GitHub Search API
+    receives only the meaningful keywords."""
+    cleaned = SEARCH_NL_RE.sub("", query.strip())
+    return cleaned.strip() or query.strip()
+
+
 def search_repos(query: str, limit: int = 5) -> list[dict]:
     """Search GitHub repositories matching a query."""
+    query = _clean_search_query(query)
     resp = requests.get(
         f"{GITHUB_API}/search/repositories",
         params={"q": query, "sort": "stars", "order": "desc", "per_page": limit},

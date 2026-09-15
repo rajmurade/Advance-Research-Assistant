@@ -1,5 +1,100 @@
 [
   {
+    "query": "firebase alternatives",
+    "timestamp": "2026-09-15T22:25:33",
+    "companies": [
+      {
+        "name": "Supabase",
+        "description": "Failed",
+        "website": "https://supabase.com",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Appwrite",
+        "description": "Failed",
+        "website": "https://appwrite.io",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Hasura",
+        "description": "Failed",
+        "website": "https://hasura.io",
+        "pricing_model": "Unknown",
+        "is_open_source": null,
+        "tech_stack": [],
+        "competitors": [],
+        "api_available": null,
+        "language_support": [],
+        "integration_capabilities": [],
+        "developer_experience_rating": null
+      },
+      {
+        "name": "Parse Server",
+        "description": "Parse Server is an open\u2011source backend platform that lets developers build, host, and scale mobile and web applications with built\u2011in data storage, authentication, real\u2011time features, and server\u2011side logic.",
+        "website": "https://parseplatform.org/",
+        "pricing_model": "Free",
+        "is_open_source": true,
+        "tech_stack": [
+          "Node.js",
+          "JavaScript",
+          "MongoDB",
+          "PostgreSQL",
+          "REST API",
+          "GraphQL API",
+          "Live Queries",
+          "Push Notifications",
+          "Cloud Functions",
+          "Parse Dashboard",
+          "Amazon S3",
+          "Google Cloud Storage",
+          "GridFS"
+        ],
+        "competitors": [],
+        "api_available": true,
+        "language_support": [
+          "JavaScript",
+          "TypeScript",
+          "Swift",
+          "Objective\u2011C",
+          "Java",
+          "Kotlin",
+          "C# (Unity)",
+          "React Native",
+          "Flutter (via community SDK)",
+          "Python (community SDK)",
+          "Go (community SDK)"
+        ],
+        "integration_capabilities": [
+          "Amazon Web Services (S3, EC2, Lambda)",
+          "Google Cloud Platform (Cloud Storage, Cloud Functions)",
+          "Microsoft Azure (Blob Storage, Functions)",
+          "Docker / Kubernetes",
+          "GitHub (source code, CI/CD)",
+          "Parse Dashboard (web UI)",
+          "Custom OAuth providers",
+          "Email services (SMTP, SendGrid, etc.)",
+          "Push notification services (APNs, FCM, etc.)"
+        ],
+        "developer_experience_rating": null
+      }
+    ],
+    "recommendation": "**Best pick:** Supabase \u2013 it bundles a Postgres database, real\u2011time subscriptions, auth, and storage in one open\u2011source stack that feels like Firebase but is fully self\u2011hostable.  \n**Cost:** Free tier gives 500\u202fMB storage, 1\u202fGB bandwidth, and 500k requests; paid plans start at $25\u202f/\u202fmonth and scale linearly.  \n**Technical edge:** Instant, auto\u2011generated REST/GraphQL APIs with built\u2011in real\u2011time and role\u2011based auth, plus a mature CLI and dashboard for rapid iteration."
+  },
+  {
     "query": "which is the best hosting",
     "timestamp": "2026-09-08T16:53:08",
     "companies": [
@@ -648,68 +743,5 @@
       }
     ],
     "recommendation": "**Best overall:** Amazon SageMaker \u2013 it delivers a fully managed, end\u2011to\u2011end MLOps stack with seamless integration into the AWS ecosystem.  \n**Cost/pricing:** Pay\u2011as\u2011you\u2011go with a generous free tier; you only pay for compute, storage, and inference endpoints, making it predictable for production workloads.  \n**Main technical advantage:** Automatic model packaging, hyper\u2011parameter tuning, and serverless deployment with built\u2011in monitoring and security, all without managing Kubernetes or infrastructure."
-  },
-  {
-    "query": "which is the best suitable coding language for machine learning?",
-    "timestamp": "2026-09-08T15:53:46",
-    "companies": [
-      {
-        "name": "Python",
-        "description": "Python is a general\u2011purpose, high\u2011level programming language that emphasizes readability and offers extensive libraries for developers.",
-        "website": "https://www.python.org/",
-        "pricing_model": "Free",
-        "is_open_source": true,
-        "tech_stack": [
-          "Python"
-        ],
-        "competitors": [],
-        "api_available": false,
-        "language_support": [
-          "Python"
-        ],
-        "integration_capabilities": [],
-        "developer_experience_rating": null
-      },
-      {
-        "name": "R",
-        "description": "Failed",
-        "website": "https://www.r-project.org/",
-        "pricing_model": "Unknown",
-        "is_open_source": null,
-        "tech_stack": [],
-        "competitors": [],
-        "api_available": null,
-        "language_support": [],
-        "integration_capabilities": [],
-        "developer_experience_rating": null
-      },
-      {
-        "name": "Java",
-        "description": "Failed",
-        "website": "https://www.oracle.com/java/",
-        "pricing_model": "Unknown",
-        "is_open_source": null,
-        "tech_stack": [],
-        "competitors": [],
-        "api_available": null,
-        "language_support": [],
-        "integration_capabilities": [],
-        "developer_experience_rating": null
-      },
-      {
-        "name": "Julia",
-        "description": "Failed",
-        "website": "https://julialang.org",
-        "pricing_model": "Unknown",
-        "is_open_source": null,
-        "tech_stack": [],
-        "competitors": [],
-        "api_available": null,
-        "language_support": [],
-        "integration_capabilities": [],
-        "developer_experience_rating": null
-      }
-    ],
-    "recommendation": "**Python** is the top choice for machine learning because its extensive ecosystem (TensorFlow, PyTorch, scikit\u2011learn, Keras) offers ready\u2011to\u2011use models and data\u2011science workflows.  \nIt\u2019s free and open\u2011source, so there are no licensing costs, and the community support keeps libraries up\u2011to\u2011date.  \nThe main technical advantage is its simplicity and readability, which accelerates prototyping and experimentation."
   }
 ]
